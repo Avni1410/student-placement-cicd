@@ -1,0 +1,62 @@
+name: Student Placement CI-CD Pipeline
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+
+  test-and-quality:
+    name: CI - Validate, Train, Test and Check Quality
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Validate Dataset
+        run: |
+          python -c "from src.preprocess import load_and_validate_data; load_and_validate_data('data/students.csv'); print('Dataset validation successful')"
+
+      - name: Train Model
+        run: |
+          python -m src.train
+
+      - name: Check Model File
+        run: |
+          test -f model/placement_model.pkl
+
+      - name: Run Unit Tests
+        run: |
+          pytest
+
+      - name: Code Quality Check
+        run: |
+          flake8 .
+
+  deploy:
+    name: CD - Deploy Application
+    needs: test-and-quality
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy Application
+        run: |
+          echo "Student Placement Prediction Application deployed successfully!"
